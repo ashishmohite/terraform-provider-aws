@@ -2990,6 +2990,40 @@ func TestAccAWSDBInstance_CACertificateIdentifier(t *testing.T) {
 	})
 }
 
+func TestAccAWSDBInstance_RestoreToPointInTime(t *testing.T) {
+	var dbInstance, sourceDbInstance rds.DBInstance
+	sourceName := "aws_db_instance.test"
+	resourceName := "aws_db_instance.restore"
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSDBInstanceConfig_RestoreToPointInTime(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists(sourceName, &sourceDbInstance),
+					testAccCheckAWSDBInstanceExists(resourceName, &dbInstance),
+				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"apply_immediately",
+					"final_snapshot_identifier",
+					"password",
+					//"restore_to_point_in_time",
+					"skip_final_snapshot",
+					"delete_automated_backups",
+				},
+			},
+		},
+	})
+}
+
 func testAccAWSDBInstanceConfig_orderableClass(engine, version, license string) string {
 	return fmt.Sprintf(`
 data "aws_rds_orderable_db_instance" "test" {
@@ -3550,6 +3584,35 @@ resource "aws_db_instance" "test" {
   username            = "foo"
 }
 `, rName)
+}
+
+func testAccAWSDBInstanceConfig_RestoreToPointInTime() string {
+	return composeConfig(
+		testAccAWSDBInstanceConfig_orderableClassMysql(),
+		fmt.Sprintf(`
+resource "aws_db_instance" "test" {
+  allocated_storage       = 10
+  backup_retention_period = 1
+  engine                  = data.aws_rds_orderable_db_instance.test.engine
+  engine_version          = data.aws_rds_orderable_db_instance.test.engine_version
+  instance_class          = data.aws_rds_orderable_db_instance.test.instance_class
+  name                    = "baz"
+  parameter_group_name    = "default.mysql5.6"
+  password                = "barbarbarbar"
+  skip_final_snapshot     = true
+  username                = "foo"
+}
+
+resource "aws_db_instance" "restore" {
+  identifier     = "tf-acc-test-point-in-time-restore-%d"
+  instance_class = aws_db_instance.test.instance_class
+  restore_to_point_in_time {
+    source_db_instance_identifier = aws_db_instance.test.identifier
+    use_latest_restorable_time    = true
+  }
+  skip_final_snapshot = true
+}
+`, acctest.RandInt()))
 }
 
 func testAccAWSDBInstanceConfig_SnapshotInstanceConfig_iopsUpdate(rName string, iops int) string {
