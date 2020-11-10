@@ -3,6 +3,14 @@
 ENHANCEMENTS
 
 * resource/aws_kinesis_firehose_delivery_stream: Add `http_endpoint_configuration` configuration block [GH-15356]
+* resource/aws_workspaces_workspace: Add configurable timeouts [GH-15479]
+
+BUG FIXES
+
+* data-source/aws_network_interface: Prevent crash with ENI attachments missing DeviceIndex or AttachmentID [GH-15567]
+* resource/aws_cognito_identity_pool: Update `identity_pool_name` argument validation to include additional characters supported by the API [GH-15773]
+* resource/aws_ecs_service: Properly remove resource from Terraform state with `ClusterNotFoundException` error [GH-15927]
+* resource/aws_network_interface: Prevent crash with ENI attachments missing DeviceIndex or AttachmentID [GH-15567]
 
 ## 3.14.1 (November 06, 2020)
 
